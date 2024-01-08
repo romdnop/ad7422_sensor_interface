@@ -4,6 +4,6 @@ RemoteSystemsTempFiles/
 .settings/
 Debug/
 *.launch
-
+build/
 # STM32 git ignore
 *.mxproject
