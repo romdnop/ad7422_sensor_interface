@@ -22,7 +22,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "adt7422.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
