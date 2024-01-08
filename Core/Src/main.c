@@ -72,7 +72,7 @@ static void MX_TIM11_Init(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
+  uint8_t temp = 0;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -108,6 +108,14 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    //HAL_I2C_Mem_Write(,ADT7422_I2CADDR_DEFAULT,ADT7422_REG__ADT7422_ID,1,1)
+    //HAL_I2C_Mem_Write(&hi2c1,ADT7422_I2CADDR_DEFAULT,ADT7422_REG__ADT7422_ID,1,1)
+    temp = HAL_I2C_IsDeviceReady (&hi2c1, ADT7422_I2CADDR_DEFAULT, 5, 100);
+    if(temp != HAL_OK)
+    {
+        led_blink_number(3);
+    }
+    HAL_Delay(5000);
   }
   /* USER CODE END 3 */
 }
@@ -260,13 +268,25 @@ static void MX_TIM11_Init(void)
   */
 static void MX_GPIO_Init(void)
 {
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
 /* USER CODE BEGIN MX_GPIO_Init_1 */
 /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : LED_BLUE_Pin */
+  GPIO_InitStruct.Pin = LED_BLUE_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(LED_BLUE_GPIO_Port, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */

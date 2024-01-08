@@ -1,0 +1,229 @@
+ARM GAS  C:\Users\User\AppData\Local\Temp\ccvBYn0w.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"led.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "Core/Src/led.c"
+  20              		.section	.text.led_on,"ax",%progbits
+  21              		.align	1
+  22              		.global	led_on
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	led_on:
+  28              	.LFB130:
+   1:Core/Src/led.c **** #include "led.h"
+   2:Core/Src/led.c **** 
+   3:Core/Src/led.c **** void led_on()
+   4:Core/Src/led.c **** {
+  29              		.loc 1 4 1 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  33 0000 08B5     		push	{r3, lr}
+  34              		.cfi_def_cfa_offset 8
+  35              		.cfi_offset 3, -8
+  36              		.cfi_offset 14, -4
+   5:Core/Src/led.c ****     HAL_GPIO_WritePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin, GPIO_PIN_RESET);
+  37              		.loc 1 5 5 view .LVU1
+  38 0002 0022     		movs	r2, #0
+  39 0004 4FF40051 		mov	r1, #8192
+  40 0008 0148     		ldr	r0, .L3
+  41 000a FFF7FEFF 		bl	HAL_GPIO_WritePin
+  42              	.LVL0:
+   6:Core/Src/led.c **** }
+  43              		.loc 1 6 1 is_stmt 0 view .LVU2
+  44 000e 08BD     		pop	{r3, pc}
+  45              	.L4:
+  46              		.align	2
+  47              	.L3:
+  48 0010 00080240 		.word	1073874944
+  49              		.cfi_endproc
+  50              	.LFE130:
+  52              		.section	.text.led_off,"ax",%progbits
+  53              		.align	1
+ARM GAS  C:\Users\User\AppData\Local\Temp\ccvBYn0w.s 			page 2
+
+
+  54              		.global	led_off
+  55              		.syntax unified
+  56              		.thumb
+  57              		.thumb_func
+  59              	led_off:
+  60              	.LFB131:
+   7:Core/Src/led.c **** 
+   8:Core/Src/led.c **** 
+   9:Core/Src/led.c **** void led_off()
+  10:Core/Src/led.c **** {
+  61              		.loc 1 10 1 is_stmt 1 view -0
+  62              		.cfi_startproc
+  63              		@ args = 0, pretend = 0, frame = 0
+  64              		@ frame_needed = 0, uses_anonymous_args = 0
+  65 0000 08B5     		push	{r3, lr}
+  66              		.cfi_def_cfa_offset 8
+  67              		.cfi_offset 3, -8
+  68              		.cfi_offset 14, -4
+  11:Core/Src/led.c ****     HAL_GPIO_WritePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin, GPIO_PIN_SET);
+  69              		.loc 1 11 5 view .LVU4
+  70 0002 0122     		movs	r2, #1
+  71 0004 4FF40051 		mov	r1, #8192
+  72 0008 0148     		ldr	r0, .L7
+  73 000a FFF7FEFF 		bl	HAL_GPIO_WritePin
+  74              	.LVL1:
+  12:Core/Src/led.c **** }
+  75              		.loc 1 12 1 is_stmt 0 view .LVU5
+  76 000e 08BD     		pop	{r3, pc}
+  77              	.L8:
+  78              		.align	2
+  79              	.L7:
+  80 0010 00080240 		.word	1073874944
+  81              		.cfi_endproc
+  82              	.LFE131:
+  84              		.section	.text.led_blink,"ax",%progbits
+  85              		.align	1
+  86              		.global	led_blink
+  87              		.syntax unified
+  88              		.thumb
+  89              		.thumb_func
+  91              	led_blink:
+  92              	.LFB132:
+  13:Core/Src/led.c **** 
+  14:Core/Src/led.c **** 
+  15:Core/Src/led.c **** void led_blink()
+  16:Core/Src/led.c **** {
+  93              		.loc 1 16 1 is_stmt 1 view -0
+  94              		.cfi_startproc
+  95              		@ args = 0, pretend = 0, frame = 0
+  96              		@ frame_needed = 0, uses_anonymous_args = 0
+  97 0000 08B5     		push	{r3, lr}
+  98              		.cfi_def_cfa_offset 8
+  99              		.cfi_offset 3, -8
+ 100              		.cfi_offset 14, -4
+  17:Core/Src/led.c ****     led_on();
+ 101              		.loc 1 17 5 view .LVU7
+ 102 0002 FFF7FEFF 		bl	led_on
+ARM GAS  C:\Users\User\AppData\Local\Temp\ccvBYn0w.s 			page 3
+
+
+ 103              	.LVL2:
+  18:Core/Src/led.c ****     HAL_Delay(500);
+ 104              		.loc 1 18 5 view .LVU8
+ 105 0006 4FF4FA70 		mov	r0, #500
+ 106 000a FFF7FEFF 		bl	HAL_Delay
+ 107              	.LVL3:
+  19:Core/Src/led.c ****     led_off();
+ 108              		.loc 1 19 5 view .LVU9
+ 109 000e FFF7FEFF 		bl	led_off
+ 110              	.LVL4:
+  20:Core/Src/led.c ****     HAL_Delay(500);
+ 111              		.loc 1 20 5 view .LVU10
+ 112 0012 4FF4FA70 		mov	r0, #500
+ 113 0016 FFF7FEFF 		bl	HAL_Delay
+ 114              	.LVL5:
+  21:Core/Src/led.c **** }
+ 115              		.loc 1 21 1 is_stmt 0 view .LVU11
+ 116 001a 08BD     		pop	{r3, pc}
+ 117              		.cfi_endproc
+ 118              	.LFE132:
+ 120              		.section	.text.led_blink_number,"ax",%progbits
+ 121              		.align	1
+ 122              		.global	led_blink_number
+ 123              		.syntax unified
+ 124              		.thumb
+ 125              		.thumb_func
+ 127              	led_blink_number:
+ 128              	.LVL6:
+ 129              	.LFB133:
+  22:Core/Src/led.c **** 
+  23:Core/Src/led.c **** 
+  24:Core/Src/led.c **** void led_blink_number(uint32_t number)
+  25:Core/Src/led.c **** {
+ 130              		.loc 1 25 1 is_stmt 1 view -0
+ 131              		.cfi_startproc
+ 132              		@ args = 0, pretend = 0, frame = 0
+ 133              		@ frame_needed = 0, uses_anonymous_args = 0
+ 134              		.loc 1 25 1 is_stmt 0 view .LVU13
+ 135 0000 38B5     		push	{r3, r4, r5, lr}
+ 136              		.cfi_def_cfa_offset 16
+ 137              		.cfi_offset 3, -16
+ 138              		.cfi_offset 4, -12
+ 139              		.cfi_offset 5, -8
+ 140              		.cfi_offset 14, -4
+ 141 0002 0546     		mov	r5, r0
+  26:Core/Src/led.c ****     uint32_t i = 0;
+ 142              		.loc 1 26 5 is_stmt 1 view .LVU14
+ 143              	.LVL7:
+  27:Core/Src/led.c ****     for(i=0;i<number;i++)
+ 144              		.loc 1 27 5 view .LVU15
+ 145              		.loc 1 27 10 is_stmt 0 view .LVU16
+ 146 0004 0024     		movs	r4, #0
+ 147              		.loc 1 27 5 view .LVU17
+ 148 0006 02E0     		b	.L12
+ 149              	.LVL8:
+ 150              	.L13:
+  28:Core/Src/led.c ****     {
+ARM GAS  C:\Users\User\AppData\Local\Temp\ccvBYn0w.s 			page 4
+
+
+  29:Core/Src/led.c ****         led_blink();
+ 151              		.loc 1 29 9 is_stmt 1 view .LVU18
+ 152 0008 FFF7FEFF 		bl	led_blink
+ 153              	.LVL9:
+  27:Core/Src/led.c ****     for(i=0;i<number;i++)
+ 154              		.loc 1 27 23 discriminator 3 view .LVU19
+ 155 000c 0134     		adds	r4, r4, #1
+ 156              	.LVL10:
+ 157              	.L12:
+  27:Core/Src/led.c ****     for(i=0;i<number;i++)
+ 158              		.loc 1 27 14 discriminator 1 view .LVU20
+ 159 000e AC42     		cmp	r4, r5
+ 160 0010 FAD3     		bcc	.L13
+  30:Core/Src/led.c ****     }
+  31:Core/Src/led.c **** }...
+ 161              		.loc 1 31 1 is_stmt 0 view .LVU21
+ 162 0012 38BD     		pop	{r3, r4, r5, pc}
+ 163              		.loc 1 31 1 view .LVU22
+ 164              		.cfi_endproc
+ 165              	.LFE133:
+ 167              		.text
+ 168              	.Letext0:
+ 169              		.file 2 "C:/Users/User/AppData/Roaming/Code/User/globalStorage/bmd.stm32-for-vscode/@xpack-dev-too
+ 170              		.file 3 "C:/Users/User/AppData/Roaming/Code/User/globalStorage/bmd.stm32-for-vscode/@xpack-dev-too
+ 171              		.file 4 "Drivers/CMSIS/Device/ST/STM32F4xx/Include/stm32f401xc.h"
+ 172              		.file 5 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_gpio.h"
+ 173              		.file 6 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h"
+ARM GAS  C:\Users\User\AppData\Local\Temp\ccvBYn0w.s 			page 5
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 led.c
+C:\Users\User\AppData\Local\Temp\ccvBYn0w.s:21     .text.led_on:00000000 $t
+C:\Users\User\AppData\Local\Temp\ccvBYn0w.s:27     .text.led_on:00000000 led_on
+C:\Users\User\AppData\Local\Temp\ccvBYn0w.s:48     .text.led_on:00000010 $d
+C:\Users\User\AppData\Local\Temp\ccvBYn0w.s:53     .text.led_off:00000000 $t
+C:\Users\User\AppData\Local\Temp\ccvBYn0w.s:59     .text.led_off:00000000 led_off
+C:\Users\User\AppData\Local\Temp\ccvBYn0w.s:80     .text.led_off:00000010 $d
+C:\Users\User\AppData\Local\Temp\ccvBYn0w.s:85     .text.led_blink:00000000 $t
+C:\Users\User\AppData\Local\Temp\ccvBYn0w.s:91     .text.led_blink:00000000 led_blink
+C:\Users\User\AppData\Local\Temp\ccvBYn0w.s:121    .text.led_blink_number:00000000 $t
+C:\Users\User\AppData\Local\Temp\ccvBYn0w.s:127    .text.led_blink_number:00000000 led_blink_number
+
+UNDEFINED SYMBOLS
+HAL_GPIO_WritePin
+HAL_Delay
