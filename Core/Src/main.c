@@ -23,6 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "adt7422.h"
+#include "usbd_cdc_if.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -73,6 +74,8 @@ int main(void)
 {
   /* USER CODE BEGIN 1 */
   uint8_t temp = 0;
+  uint8_t buff[8] = {0};
+  uint16_t current_temp;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -81,7 +84,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
+  
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -98,7 +101,8 @@ int main(void)
   MX_TIM11_Init();
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
-
+  HAL_Delay(1000);
+  adt7422_init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -110,12 +114,22 @@ int main(void)
     /* USER CODE BEGIN 3 */
     //HAL_I2C_Mem_Write(,ADT7422_I2CADDR_DEFAULT,ADT7422_REG__ADT7422_ID,1,1)
     //HAL_I2C_Mem_Write(&hi2c1,ADT7422_I2CADDR_DEFAULT,ADT7422_REG__ADT7422_ID,1,1)
-    temp = HAL_I2C_IsDeviceReady (&hi2c1, ADT7422_I2CADDR_DEFAULT, 5, 100);
-    if(temp != HAL_OK)
+    //temp = HAL_I2C_IsDeviceReady (&hi2c1, ADT7422_I2CADDR_DEFAULT, 5, 100);
+    if(ad7422_is_measurement_ready())
     {
         led_blink_number(3);
+        if (ad7422_is_measurement_ready())
+        {
+          current_temp = ad7422_read_temp();
+          buff[0] = (current_temp>>8)&0xFF;
+          buff[1] = current_temp & 0xFF;
+          buff[2] = 0xFE; //replace with CRC8
+          buff[3] = '\r';
+          CDC_Transmit_FS((uint8_t *)&buff,4);
+        }
+        
     }
-    HAL_Delay(5000);
+    HAL_Delay(1000);
   }
   /* USER CODE END 3 */
 }

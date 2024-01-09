@@ -2,8 +2,9 @@
 #define ADT7422_H_
 
 #include "stm32f4xx_hal.h"
+#include "main.h"
 
-#define ADT7422_I2CADDR_DEFAULT 0x48 ///< I2C address
+#define ADT7422_I2CADDR_DEFAULT (0x48<<1) ///< I2C address
 
 #define ADT7422_REG__ADT7422_TEMPMSB 0x00 ///< Temp. value MSB
 #define ADT7422_REG__ADT7422_TEMPLSB 0x01 ///< Temp. value LSB
@@ -23,6 +24,6 @@
 #define ADT7422_REG__ADT7422_SWRST 0x2F  ///< Software reset
 
 
-
+#define ADT7422_MANUFACTURER_ID 0xCB
 
 #endif
