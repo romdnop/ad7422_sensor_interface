@@ -70,7 +70,6 @@ ADT74X0 temp_sensor;
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-  uint8_t temp = 0;
   uint8_t buff[8] = {0};
   uint16_t current_temp;
   /* USER CODE END 1 */
@@ -99,16 +98,11 @@ int main(void)
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
   temp_sensor.adti2c = &hi2c1; // Your I2C Handler
-  ADT74x0_Init(&temp_sensor, 0x48); // I2C address depends of A0 and A1 pins
-	//ADT74x0_Reset(&temp_sensor); // Optional
+  ADT74x0_Init(&temp_sensor, ADT74X0_DEVICE_ADDR); // I2C address depends of A0 and A1 pins
+	ADT74x0_Reset(&temp_sensor); // Optional
 	ADT74x0_SetResolution(&temp_sensor, ADT74X0_16BITS); // Put the device in 16 bits resolution
   
   HAL_Delay(1000);
-  //adt7422_init();
-  //ad7744_read_reg(ADT7422_REG__ADT7422_CONFIG, (uint8_t *)&buff, 1);
-  //buff[0] = 1; //set 16-bit mode
-  //ad7744_write_reg(ADT7422_REG__ADT7422_CONFIG, (uint8_t *)&buff, 1);
-  //ad7744_read_reg(0x04, (uint8_t *)&buff, 2);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -118,19 +112,6 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    //HAL_I2C_Mem_Write(,ADT7422_I2CADDR_DEFAULT,ADT7422_REG__ADT7422_ID,1,1)
-    //HAL_I2C_Mem_Write(&hi2c1,ADT7422_I2CADDR_DEFAULT,ADT7422_REG__ADT7422_ID,1,1)
-    //temp = HAL_I2C_IsDeviceReady (&hi2c1, ADT7422_I2CADDR_DEFAULT, 5, 100);
-    //current_temp = adt7420_get_temperature(i2c);
-    //ad7744_read_reg(ADT7422_REG__ADT7422_CONFIG, (uint8_t *)&buff, 1);
-    //ad7744_read_reg(0,buff,2);
-    //I2C_ReadBytes(ADT7422_I2CADDR_DEFAULT,00,(uint8_t *)& buff,2);
-    //HAL_I2C_Mem_Read(&hi2c1, ADT7422_I2CADDR_DEFAULT<<1, 0x00, I2C_MEMADD_SIZE_16BIT, buff, 2, HAL_MAX_DELAY);
-    //HAL_I2C_M
-
-    //if (ADT74x0_ReadTemp(&temp) != HAL_OK) {
-	    //Error_Handler();
-	  //}
     if(ADT74x0_Ready((ADT74X0 *)&temp_sensor))
     {
       if (ADT74x0_ReadTemp(&temp_sensor) != HAL_OK) {
@@ -139,7 +120,7 @@ int main(void)
       current_temp = temp_sensor.raw_data;
       buff[0] = (current_temp>>8)&0xFF;
       buff[1] = current_temp & 0xFF;
-      buff[2] = CRC8((uint8_t *)&buff,2); //replace with CRC8
+      buff[2] = CRC8((uint8_t *)&buff,2); //checksum calculation
       buff[3] = '\r';
       CDC_Transmit_FS((uint8_t *)&buff,4);
     }

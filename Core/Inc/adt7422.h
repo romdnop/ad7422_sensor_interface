@@ -11,6 +11,8 @@
 
 #include "main.h"
 
+#define ADT74X0_DEVICE_ADDR     0x48
+
 #define ADT74X0_ADDR_TEMP_MSB	0x00
 #define ADT74X0_ADDR_TEMP_LSB	0x01
 #define ADT74X0_ADDR_STATUS		0x02
