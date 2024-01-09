@@ -37,6 +37,7 @@ BUILD_DIR = build
 # C sources
 C_SOURCES =  \
 Core/Src/adt7422.c \
+Core/Src/crc.c \
 Core/Src/led.c \
 Core/Src/main.c \
 Core/Src/stm32f4xx_hal_msp.c \
@@ -63,7 +64,12 @@ Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc_ex.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim_ex.c \
+Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_exti.c \
+Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_gpio.c \
+Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_rcc.c \
+Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_tim.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_usb.c \
+Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_utils.c \
 Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c \
 Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_core.c \
 Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.c \
@@ -129,12 +135,14 @@ AS_DEFS =
 # C defines
 C_DEFS =  \
 -DSTM32F401xC \
+-DUSE_FULL_LL_DRIVER \
 -DUSE_HAL_DRIVER
 
 
 # CXX defines
 CXX_DEFS =  \
 -DSTM32F401xC \
+-DUSE_FULL_LL_DRIVER \
 -DUSE_HAL_DRIVER
 
 

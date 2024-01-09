@@ -1,117 +1,279 @@
+/**
+ ***************************************************************************************
+ * @file    ADT74x0.c
+ * @brief   This file provides code to use temperature sensors Analog ADT7410 and ADT7420
+ * @author	 Axel Chabot
+ ***************************************************************************************
+ */
+
 #include "adt7422.h"
 
-/*
-Configuration Register (Register Address 0x03)
-
-Bits [1:0] - These two bits set the number of undertemperature/overtemperature faults that can occur before
-            setting the INT pin and CT pin. This helps to avoid false triggering due to temperature noise.
-            00 = 1 fault (default).
-            01 = 2 faults.
-            10 = 3 faults.
-            11 = 4 faults.
-Bit 2 - This bit selects the output polarity of the CT pin.
-        0 = active low.
-        1 = active high.
-Bit 3 - This bit selects the output polarity of the INT pin.
-        0 = active low.
-        1 = active high.
-Bit 4 - This bit selects between comparator mode and interrupt mode.
-        0 = interrupt mode.
-        1 = comparator mode.
-Bits [6:5] - These two bits set the operational mode for the ADT7422.
-            00 = continuous conversion (default). When one conversion is finished, the ADT7422 starts another.
-            01 = one shot. Conversion time is typically 240 ms.
-            10 = 1 SPS mode. Conversion time is typically 60 ms. This operational mode reduces the average
-            current consumption.
-            11 = shutdown. All circuitry except interface circuitry is powered down. 
-Bit 7 - This bit sets up the resolution of the ADC when converting.
-        0 = 13-bit resolution. Sign bit + 12 bits gives a temperature resolution of 0.0625°C.
-        1 = 16-bit resolution. Sign bit + 15 bits gives a temperature resolution of 0.0078°C.
-*/
-uint8_t adt7422_init()
-{
-    uint8_t result = 0;
-    uint8_t conf = 0;
-    uint8_t device_id = 0;
-
-    HAL_I2C_Mem_Read(&hi2c1,ADT7422_I2CADDR_DEFAULT,ADT7422_REG__ADT7422_ID,1,(uint8_t *)&device_id,1,1000);
-
-    if(device_id != ADT7422_MANUFACTURER_ID)
-    {
-        return 0;
-    }
-
-
-    //set 16-bit temperature mode
-    conf |= (1<<7);
-    //result = HAL_I2C_Mem_Read(&hi2c1,ADT7422_I2CADDR_DEFAULT,ADT7422_REG__ADT7422_CONFIG,1,(uint8_t *)&conf,1,100);
-    result = HAL_I2C_Mem_Write(&hi2c1,ADT7422_I2CADDR_DEFAULT,ADT7422_REG__ADT7422_CONFIG,1,(uint8_t *)&conf,1,100);
-    if(result == HAL_OK)
-    {
-        return 1;
-    }
-
-    return 0;
+/**
+ * Init function
+ * @param adt74x0 Struct pointer
+ * @param addr I2C address of the IC depend of the config a0, a1
+ */
+void ADT74x0_Init(ADT74X0 *adt74x0, uint8_t addr) {
+	adt74x0->fault_queue = ADT74X0_1_FAULT;
+	adt74x0->ct_polarity = ADT74X0_CT_ACTIVE_LOW;
+	adt74x0->int_polarity = ADT74X0_INT_ACTIVE_LOW;
+	adt74x0->int_ct_mode = ADT74X0_INTERRUPT_MODE;
+	adt74x0->operation_mode = ADT74X0_CONTINOUS_MODE;
+	adt74x0->resolution = ADT74X0_13BITS;
+	adt74x0->address = (uint16_t) (addr << 1);
 }
 
-
-/*
-1. Write to the ADT7422 using the appropriate address.
-2. Read the acknowledge bit.
-3. Set the register address to 0x2F.
-4. Read the acknowledge bit.
-5. Apply stop condition.
-6. Wait 200 µs for the device to reset the registers to the
-default power-up settings
-*/
-void adt7422_reset()
-{
-    //to be implmented...
-    //HAL_I2C_Mem_Write(&hi2c1,ADT7422_I2CADDR_DEFAULT,ADT7422_REG__ADT7422_SWRST,1,0xFF,1,50);
-    
+/**
+ * Reset function
+ * @param adt74x0 Struct pointer
+ */
+void ADT74x0_Reset(ADT74X0 *adt74x0) {
+	uint8_t addr = ADT74X0_ADDR_RESET;
+	HAL_I2C_Master_Transmit(adt74x0->adti2c, adt74x0->address, &addr, 1,
+			ADT74X0_TIMEOUT_I2C);
+	HAL_Delay(1);
+	adt74x0->fault_queue = ADT74X0_1_FAULT;
+	adt74x0->ct_polarity = ADT74X0_CT_ACTIVE_LOW;
+	adt74x0->int_polarity = ADT74X0_INT_ACTIVE_LOW;
+	adt74x0->int_ct_mode = ADT74X0_INTERRUPT_MODE;
+	adt74x0->operation_mode = ADT74X0_CONTINOUS_MODE;
+	adt74x0->resolution = ADT74X0_13BITS;
 }
 
-uint8_t ad7422_is_present()
-{
-    uint8_t temp = 0;
-    temp = HAL_I2C_IsDeviceReady (&hi2c1, ADT7422_I2CADDR_DEFAULT, 5, 5);
-    if(temp != HAL_OK)
-    {
-        return 1;
-    }
-    return 0;
+/**
+ * Conversion state
+ * @param adt74x0 Struct pointer
+ * @return true when temperature conversion is done, false otherwise
+ */
+uint8_t ADT74x0_Ready(ADT74X0 *adt74x0) {
+	uint8_t rdy = 0;
+	rdy = (ADT74x0_GetRegisterValue(adt74x0, ADT74X0_ADDR_STATUS) & 0x80);
+	return (!rdy);
 }
 
-
-/*
-Bit 7 - This bit goes low when the temperature conversion result is written into the temperature value register. It
-is reset to 1 when the temperature value register is read. In one shot and 1 SPS modes, this bit is reset after
-a write to the operation mode bits in the configuration register.
-*/
-uint8_t ad7422_is_measurement_ready()
-{
-    uint8_t result = 0;
-    uint8_t reg;
-
-    HAL_I2C_Mem_Read(&hi2c1,ADT7422_I2CADDR_DEFAULT,ADT7422_REG__ADT7422_STATUS,1,(uint8_t *)&reg,1,100);
-    if(reg & (1<<7))
-    {
-        result = 1;
-    }
-    return result;
+/**
+ * Identification number of the IC
+ * @param adt74x0 Struct pointer
+ * @return ID number
+ */
+uint8_t ADT74x0_ID(ADT74X0 *adt74x0) {
+	return ADT74x0_GetRegisterValue(adt74x0, ADT74X0_ADDR_ID);
 }
 
-uint16_t ad7422_read_temp()
-{
-    uint16_t temperature = 0xFFFF;
-    uint8_t buff[2] = {0};
-    //HAL_I2C_Master_Receive(&hi2c1, ADT7422_I2CADDR_DEFAULT,ADT7422_REG__ADT7422_TEMPMSB,)
-    HAL_I2C_Mem_Read(&hi2c1, ADT7422_I2CADDR_DEFAULT, ADT7422_REG__ADT7422_TEMPMSB, I2C_MEMADD_SIZE_8BIT, (uint8_t *)&buff, 2, 100);
-    //HAL_I2C_Mem_Read(&hi2c1, ADT7422_I2CADDR_DEFAULT,ADT7422_REG__ADT7422_TEMPMSB,2,(uint8_t *)&temp_msb,2,10);
-    //HAL_I2C_Mem_Read(&hi2c1, ADT7422_I2CADDR_DEFAULT,ADT7422_REG__ADT7422_TEMPLSB,1,(uint8_t *)&temp_lsb,1,10);
-    temperature = (uint16_t)buff[0]<<8;
-    temperature |= buff[1];
-    return temperature;
+/**
+ * Get register value from an address
+ * @param adt74x0 Struct pointer
+ * @param regAddress Register address
+ * @return Return the value asked
+ */
+uint8_t ADT74x0_GetRegisterValue(ADT74X0 *adt74x0, uint8_t regAddress) {
+	uint8_t receivedData = 0x00;
+	HAL_I2C_Master_Transmit(adt74x0->adti2c, adt74x0->address, &regAddress, 1,
+			ADT74X0_TIMEOUT_I2C);
+	HAL_I2C_Master_Receive(adt74x0->adti2c, adt74x0->address, &receivedData, 1,
+			ADT74X0_TIMEOUT_I2C);
+	return receivedData;
 }
 
+/**
+ * Set register value from an address
+ * @param adt74x0 Struct pointer
+ * @param regAddress Register address
+ * @param regValue Value to write into the register
+ */
+void ADT74x0_SetRegisterValue(ADT74X0 *adt74x0, uint8_t regAddress,
+		uint8_t regValue) {
+	uint8_t data[2] = { 0x00, 0x00 };
+	data[0] = regAddress;
+	data[1] = regValue;
+	HAL_I2C_Master_Transmit(adt74x0->adti2c, adt74x0->address, data, 2,
+			ADT74X0_TIMEOUT_I2C);
+}
 
+/**
+ * Change configuration of fault queue in case of noisy temperature environment.
+ * @param adt74x0 Struct pointer
+ * @param new New fault queue value
+ */
+void ADT74x0_SetFaultQueue(ADT74X0 *adt74x0, ADT74X0_Fault_Queue new) {
+	uint8_t reg;
+	reg = ADT74x0_GetRegisterValue(adt74x0, ADT74X0_ADDR_CONF);
+	reg &= ~ADT74X0_FAULT_QUEUE(0xFF);
+	reg |= ADT74X0_FAULT_QUEUE((uint8_t ) new);
+	ADT74x0_SetRegisterValue(adt74x0, ADT74X0_ADDR_CONF, reg);
+	adt74x0->fault_queue = new;
+}
+
+/**
+ * Critical Overtemperature Indicator polarity
+ * @param adt74x0 Struct pointer
+ * @param new New polarity
+ */
+void ADT74x0_SetCTPolarity(ADT74X0 *adt74x0, ADT74X0_CT_Polarity new) {
+	uint8_t reg;
+	reg = ADT74x0_GetRegisterValue(adt74x0, ADT74X0_ADDR_CONF);
+	reg &= ~ADT74X0_CT_POLARITY(0xFF);
+	reg |= ADT74X0_CT_POLARITY((uint8_t ) new);
+	ADT74x0_SetRegisterValue(adt74x0, ADT74X0_ADDR_CONF, reg);
+	adt74x0->ct_polarity = new;
+}
+
+/**
+ * Overtemperature and Undertemperature Indicator polarity
+ * @param adt74x0 Struct pointer
+ * @param new New polarity
+ */
+void ADT74x0_SetINTPolarity(ADT74X0 *adt74x0, ADT74X0_INT_Polarity new) {
+	uint8_t reg;
+	reg = ADT74x0_GetRegisterValue(adt74x0, ADT74X0_ADDR_CONF);
+	reg &= ~ADT74X0_INT_POLARITY(0xFF);
+	reg |= ADT74X0_INT_POLARITY((uint8_t ) new);
+	ADT74x0_SetRegisterValue(adt74x0, ADT74X0_ADDR_CONF, reg);
+	adt74x0->int_polarity = new;
+}
+
+/**
+ * Set the functioning mode for CT and INT pins(comparator or interruption)
+ * @param adt74x0 Struct pointer
+ * @param new New mode
+ */
+void ADT74x0_SetINTCTMode(ADT74X0 *adt74x0, ADT74X0_INT_CT_Mode new) {
+	uint8_t reg;
+	reg = ADT74x0_GetRegisterValue(adt74x0, ADT74X0_ADDR_CONF);
+	reg &= ~ADT74X0_INT_CT_MODE(0xFF);
+	reg |= ADT74X0_INT_CT_MODE((uint8_t ) new);
+	ADT74x0_SetRegisterValue(adt74x0, ADT74X0_ADDR_CONF, reg);
+	adt74x0->int_ct_mode = new;
+}
+
+/**
+ * Set Set the functioning mode for temperature conversion
+ * @param adt74x0 Struct pointer
+ * @param new New mode
+ */
+void ADT74x0_SetOperationMode(ADT74X0 *adt74x0, ADT74X0_Operation_Mode new) {
+	uint8_t reg;
+	reg = ADT74x0_GetRegisterValue(adt74x0, ADT74X0_ADDR_CONF);
+	reg &= ~ADT74X0_OPERATION_MODE(0xFF);
+	reg |= ADT74X0_OPERATION_MODE((uint8_t ) new);
+	ADT74x0_SetRegisterValue(adt74x0, ADT74X0_ADDR_CONF, reg);
+	adt74x0->operation_mode = new;
+}
+
+/**
+ * Switch between 13bits and 16bits resolution
+ * @param adt74x0 Struct pointer
+ * @param new New resolution
+ */
+void ADT74x0_SetResolution(ADT74X0 *adt74x0, ADT74X0_Resolution new) {
+	uint8_t reg;
+	reg = ADT74x0_GetRegisterValue(adt74x0, ADT74X0_ADDR_CONF);
+	reg &= ~ADT74X0_RESOLUTION(0xFF);
+	reg |= ADT74X0_RESOLUTION((uint8_t ) new);
+	ADT74x0_SetRegisterValue(adt74x0, ADT74X0_ADDR_CONF, reg);
+	adt74x0->resolution = new;
+}
+
+/**
+ * Set the high temperature setpoint
+ * @param adt74x0 Struct pointer
+ * @param newTemp New high temperature
+ */
+void ADT74x0_SetTHigh(ADT74X0 *adt74x0, uint16_t newTemp) {
+	uint8_t data[3];
+	data[0] = ADT74X0_ADDR_THIGH_MSB;
+	data[1] = newTemp >> 8;
+	data[2] = newTemp & 0xFF;
+	HAL_I2C_Master_Transmit(adt74x0->adti2c, adt74x0->address, data, 3,
+			ADT74X0_TIMEOUT_I2C);
+}
+
+/**
+ * Set the low temperature setpoint
+ * @param adt74x0 Struct pointer
+ * @param newTemp New low temperature
+ */
+void ADT74x0_SetTLow(ADT74X0 *adt74x0, uint16_t newTemp) {
+	uint8_t data[3];
+	data[0] = ADT74X0_ADDR_TLOW_MSB;
+	data[1] = newTemp >> 8;
+	data[2] = newTemp & 0xFF;
+	HAL_I2C_Master_Transmit(adt74x0->adti2c, adt74x0->address, data, 3,
+			ADT74X0_TIMEOUT_I2C);
+}
+
+/**
+ * Set the critical temperature setpoint
+ * @param adt74x0 Struct pointer
+ * @param newTemp New critical temperature
+ */
+void ADT74x0_SetTCrit(ADT74X0 *adt74x0, uint16_t newTemp) {
+	uint8_t data[3];
+	data[0] = ADT74X0_ADDR_TCRIT_MSB;
+	data[1] = newTemp >> 8;
+	data[2] = newTemp & 0xFF;
+	HAL_I2C_Master_Transmit(adt74x0->adti2c, adt74x0->address, data, 3,
+			ADT74X0_TIMEOUT_I2C);
+}
+
+/**
+ * Set the hysteresis temperature setpoint
+ * @param adt74x0 Struct pointer
+ * @param newTemp New hysteresis temperature
+ */
+void ADT74x0_SetTHyst(ADT74X0 *adt74x0, uint8_t newTemp) {
+	if (newTemp <= 15) {
+		uint8_t hyst = newTemp & 0xF;
+		ADT74x0_SetRegisterValue(adt74x0, ADT74X0_ADDR_THYST, hyst);
+	}
+}
+
+/**
+ * Start single conversion of temperature
+ * @param adt74x0 Struct pointer
+ * @return HAL_OK when everything good, HAL_TIMEOUT otherwise
+ */
+HAL_StatusTypeDef ADT74x0_ReadTemp(ADT74X0 *adt74x0) {
+	ADT74x0_SetOperationMode(adt74x0, ADT74X0_ONE_SHOT_MODE);
+
+	uint32_t startTime = HAL_GetTick();
+	while (!ADT74x0_Ready(adt74x0)) {
+		if (HAL_GetTick()
+				- startTime> (uint32_t) 1.5 * ADT74X0_SINGLE_CONV_TIME) {
+			return HAL_TIMEOUT;
+		}
+	}
+	uint8_t addr = ADT74X0_ADDR_TEMP_MSB;
+	uint8_t raw[2] = { 0x00, 0x00 };
+	uint16_t raw_read = 0x0000;
+	HAL_I2C_Master_Transmit(adt74x0->adti2c, adt74x0->address, &addr, 1,
+			ADT74X0_TIMEOUT_I2C);
+	HAL_I2C_Master_Receive(adt74x0->adti2c, adt74x0->address, raw, 2,
+			ADT74X0_TIMEOUT_I2C);
+	raw_read += (raw[0] << 8);
+	raw_read += (raw[1] << 0);
+	adt74x0->raw_data = raw_read;
+	ADT74x0_RawToTemp(adt74x0);
+
+	return HAL_OK;
+}
+
+/**
+ * Convert raw temperature to decimal temperature
+ * @param adt74x0 Struct pointer
+ */
+void ADT74x0_RawToTemp(ADT74X0 *adt74x0) {
+	if (adt74x0->resolution == ADT74X0_16BITS) {
+		if ((adt74x0->raw_data & 0x8000) == 0x8000) {
+			adt74x0->deg_data = ((float) (adt74x0->raw_data - 65536)) / 128.0;
+		} else {
+			adt74x0->deg_data = ((float) (adt74x0->raw_data)) / 128.0;
+		}
+	} else {
+		if ((adt74x0->raw_data & 0x8000) == 0x8000) {
+			adt74x0->deg_data = ((float) (adt74x0->raw_data - 8192)) / 16.0;
+		} else {
+			adt74x0->deg_data = ((float) (adt74x0->raw_data)) / 16.0;
+		}
+	}
+}

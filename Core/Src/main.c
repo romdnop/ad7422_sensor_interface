@@ -44,9 +44,6 @@
 /* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c1;
 
-TIM_HandleTypeDef htim10;
-TIM_HandleTypeDef htim11;
-
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -63,7 +60,7 @@ static void MX_TIM11_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+ADT74X0 temp_sensor;
 /* USER CODE END 0 */
 
 /**
@@ -101,8 +98,17 @@ int main(void)
   MX_TIM11_Init();
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
+  temp_sensor.adti2c = &hi2c1; // Your I2C Handler
+  ADT74x0_Init(&temp_sensor, 0x48); // I2C address depends of A0 and A1 pins
+	//ADT74x0_Reset(&temp_sensor); // Optional
+	ADT74x0_SetResolution(&temp_sensor, ADT74X0_16BITS); // Put the device in 16 bits resolution
+  
   HAL_Delay(1000);
-  adt7422_init();
+  //adt7422_init();
+  //ad7744_read_reg(ADT7422_REG__ADT7422_CONFIG, (uint8_t *)&buff, 1);
+  //buff[0] = 1; //set 16-bit mode
+  //ad7744_write_reg(ADT7422_REG__ADT7422_CONFIG, (uint8_t *)&buff, 1);
+  //ad7744_read_reg(0x04, (uint8_t *)&buff, 2);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -115,20 +121,29 @@ int main(void)
     //HAL_I2C_Mem_Write(,ADT7422_I2CADDR_DEFAULT,ADT7422_REG__ADT7422_ID,1,1)
     //HAL_I2C_Mem_Write(&hi2c1,ADT7422_I2CADDR_DEFAULT,ADT7422_REG__ADT7422_ID,1,1)
     //temp = HAL_I2C_IsDeviceReady (&hi2c1, ADT7422_I2CADDR_DEFAULT, 5, 100);
-    if(ad7422_is_measurement_ready())
+    //current_temp = adt7420_get_temperature(i2c);
+    //ad7744_read_reg(ADT7422_REG__ADT7422_CONFIG, (uint8_t *)&buff, 1);
+    //ad7744_read_reg(0,buff,2);
+    //I2C_ReadBytes(ADT7422_I2CADDR_DEFAULT,00,(uint8_t *)& buff,2);
+    //HAL_I2C_Mem_Read(&hi2c1, ADT7422_I2CADDR_DEFAULT<<1, 0x00, I2C_MEMADD_SIZE_16BIT, buff, 2, HAL_MAX_DELAY);
+    //HAL_I2C_M
+
+    //if (ADT74x0_ReadTemp(&temp) != HAL_OK) {
+	    //Error_Handler();
+	  //}
+    if(ADT74x0_Ready((ADT74X0 *)&temp_sensor))
     {
-        led_blink_number(3);
-        if (ad7422_is_measurement_ready())
-        {
-          current_temp = ad7422_read_temp();
-          buff[0] = (current_temp>>8)&0xFF;
-          buff[1] = current_temp & 0xFF;
-          buff[2] = 0xFE; //replace with CRC8
-          buff[3] = '\r';
-          CDC_Transmit_FS((uint8_t *)&buff,4);
-        }
-        
+      if (ADT74x0_ReadTemp(&temp_sensor) != HAL_OK) {
+	      Error_Handler();
+	    }
+      current_temp = temp_sensor.raw_data;
+      buff[0] = (current_temp>>8)&0xFF;
+      buff[1] = current_temp & 0xFF;
+      buff[2] = CRC8((uint8_t *)&buff,2); //replace with CRC8
+      buff[3] = '\r';
+      CDC_Transmit_FS((uint8_t *)&buff,4);
     }
+
     HAL_Delay(1000);
   }
   /* USER CODE END 3 */
@@ -140,43 +155,47 @@ int main(void)
   */
 void SystemClock_Config(void)
 {
-  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  LL_FLASH_SetLatency(LL_FLASH_LATENCY_0);
+  while(LL_FLASH_GetLatency()!= LL_FLASH_LATENCY_0)
+  {
+  }
+  LL_PWR_SetRegulVoltageScaling(LL_PWR_REGU_VOLTAGE_SCALE2);
+  LL_RCC_HSE_Enable();
 
-  /** Configure the main internal regulator output voltage
-  */
-  __HAL_RCC_PWR_CLK_ENABLE();
-  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE2);
+   /* Wait till HSE is ready */
+  while(LL_RCC_HSE_IsReady() != 1)
+  {
 
-  /** Initializes the RCC Oscillators according to the specified parameters
-  * in the RCC_OscInitTypeDef structure.
-  */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = 15;
-  RCC_OscInitStruct.PLL.PLLN = 144;
-  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-  RCC_OscInitStruct.PLL.PLLQ = 5;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  }
+  LL_RCC_PLL_ConfigDomain_48M(LL_RCC_PLLSOURCE_HSE, LL_RCC_PLLM_DIV_15, 144, LL_RCC_PLLQ_DIV_5);
+  LL_RCC_PLL_Enable();
+
+   /* Wait till PLL is ready */
+  while(LL_RCC_PLL_IsReady() != 1)
+  {
+
+  }
+  while (LL_PWR_IsActiveFlag_VOS() == 0)
+  {
+  }
+  LL_RCC_SetAHBPrescaler(LL_RCC_SYSCLK_DIV_1);
+  LL_RCC_SetAPB1Prescaler(LL_RCC_APB1_DIV_1);
+  LL_RCC_SetAPB2Prescaler(LL_RCC_APB2_DIV_1);
+  LL_RCC_SetSysClkSource(LL_RCC_SYS_CLKSOURCE_HSE);
+
+   /* Wait till System clock is ready */
+  while(LL_RCC_GetSysClkSource() != LL_RCC_SYS_CLKSOURCE_STATUS_HSE)
+  {
+
+  }
+  LL_SetSystemCoreClock(25000000);
+
+   /* Update the time base */
+  if (HAL_InitTick (TICK_INT_PRIORITY) != HAL_OK)
   {
     Error_Handler();
   }
-
-  /** Initializes the CPU, AHB and APB buses clocks
-  */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSE;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
-
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
-  {
-    Error_Handler();
-  }
+  LL_RCC_SetTIMPrescaler(LL_RCC_TIM_PRESCALER_TWICE);
 }
 
 /**
@@ -188,7 +207,7 @@ static void MX_I2C1_Init(void)
 {
 
   /* USER CODE BEGIN I2C1_Init 0 */
-
+  
   /* USER CODE END I2C1_Init 0 */
 
   /* USER CODE BEGIN I2C1_Init 1 */
@@ -225,19 +244,24 @@ static void MX_TIM10_Init(void)
 
   /* USER CODE END TIM10_Init 0 */
 
+  LL_TIM_InitTypeDef TIM_InitStruct = {0};
+
+  /* Peripheral clock enable */
+  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_TIM10);
+
+  /* TIM10 interrupt Init */
+  NVIC_SetPriority(TIM1_UP_TIM10_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
+  NVIC_EnableIRQ(TIM1_UP_TIM10_IRQn);
+
   /* USER CODE BEGIN TIM10_Init 1 */
 
   /* USER CODE END TIM10_Init 1 */
-  htim10.Instance = TIM10;
-  htim10.Init.Prescaler = 0;
-  htim10.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim10.Init.Period = 65535;
-  htim10.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim10.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_Base_Init(&htim10) != HAL_OK)
-  {
-    Error_Handler();
-  }
+  TIM_InitStruct.Prescaler = 0;
+  TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
+  TIM_InitStruct.Autoreload = 65535;
+  TIM_InitStruct.ClockDivision = LL_TIM_CLOCKDIVISION_DIV1;
+  LL_TIM_Init(TIM10, &TIM_InitStruct);
+  LL_TIM_DisableARRPreload(TIM10);
   /* USER CODE BEGIN TIM10_Init 2 */
 
   /* USER CODE END TIM10_Init 2 */
@@ -256,19 +280,24 @@ static void MX_TIM11_Init(void)
 
   /* USER CODE END TIM11_Init 0 */
 
+  LL_TIM_InitTypeDef TIM_InitStruct = {0};
+
+  /* Peripheral clock enable */
+  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_TIM11);
+
+  /* TIM11 interrupt Init */
+  NVIC_SetPriority(TIM1_TRG_COM_TIM11_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
+  NVIC_EnableIRQ(TIM1_TRG_COM_TIM11_IRQn);
+
   /* USER CODE BEGIN TIM11_Init 1 */
 
   /* USER CODE END TIM11_Init 1 */
-  htim11.Instance = TIM11;
-  htim11.Init.Prescaler = 0;
-  htim11.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim11.Init.Period = 65535;
-  htim11.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim11.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_Base_Init(&htim11) != HAL_OK)
-  {
-    Error_Handler();
-  }
+  TIM_InitStruct.Prescaler = 0;
+  TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
+  TIM_InitStruct.Autoreload = 65535;
+  TIM_InitStruct.ClockDivision = LL_TIM_CLOCKDIVISION_DIV1;
+  LL_TIM_Init(TIM11, &TIM_InitStruct);
+  LL_TIM_DisableARRPreload(TIM11);
   /* USER CODE BEGIN TIM11_Init 2 */
 
   /* USER CODE END TIM11_Init 2 */
@@ -282,25 +311,26 @@ static void MX_TIM11_Init(void)
   */
 static void MX_GPIO_Init(void)
 {
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
 /* USER CODE BEGIN MX_GPIO_Init_1 */
 /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOC_CLK_ENABLE();
-  __HAL_RCC_GPIOH_CLK_ENABLE();
-  __HAL_RCC_GPIOA_CLK_ENABLE();
-  __HAL_RCC_GPIOB_CLK_ENABLE();
+  LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_GPIOC);
+  LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_GPIOH);
+  LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_GPIOA);
+  LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_GPIOB);
 
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin, GPIO_PIN_RESET);
+  /**/
+  LL_GPIO_ResetOutputPin(LED_BLUE_GPIO_Port, LED_BLUE_Pin);
 
-  /*Configure GPIO pin : LED_BLUE_Pin */
+  /**/
   GPIO_InitStruct.Pin = LED_BLUE_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(LED_BLUE_GPIO_Port, &GPIO_InitStruct);
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+  LL_GPIO_Init(LED_BLUE_GPIO_Port, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
