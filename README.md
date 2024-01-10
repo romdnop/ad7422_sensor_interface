@@ -56,3 +56,9 @@ _Negative Temperature = (ADC Code (Decimal) − 65,536)/128_
 Where Bit 15 (sign bit) is removed from the ADC code:
 
 _Negative Temperature = (ADC Code (Decimal) − 32,768)/128_
+
+# Build
+
+Project can be built in _[Visual Studio Code](https://code.visualstudio.com/)_ with _[C/C++](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools)_ and _[STM32](https://marketplace.visualstudio.com/items?itemName=bmd.stm32-for-vscode)_ plugins installed.
+
+To build and debug [ARM Embedded Toolchain](https://developer.arm.com/downloads/-/gnu-rm) and [OpenOCD](https://openocd.org/) are both required.
