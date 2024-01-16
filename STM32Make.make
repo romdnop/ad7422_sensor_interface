@@ -37,6 +37,7 @@ BUILD_DIR = build
 # C sources
 C_SOURCES =  \
 Core/Src/adt7422.c \
+Core/Src/calibration.c \
 Core/Src/crc.c \
 Core/Src/led.c \
 Core/Src/main.c \
@@ -64,6 +65,7 @@ Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc_ex.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim_ex.c \
+Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_dma.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_exti.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_gpio.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_rcc.c \
@@ -215,7 +217,6 @@ vpath %.cpp $(sort $(dir $(CPP_SOURCES)))
 OBJECTS += $(addprefix $(BUILD_DIR)/,$(notdir $(C_SOURCES:.c=.o)))
 vpath %.c $(sort $(dir $(C_SOURCES)))
 
-# list of ASM program objects
 # list of ASM program objects
 UPPER_CASE_ASM_SOURCES = $(filter %.S,$(ASM_SOURCES))
 LOWER_CASE_ASM_SOURCES = $(filter %.s,$(ASM_SOURCES))

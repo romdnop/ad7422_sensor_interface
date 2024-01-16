@@ -44,6 +44,7 @@ extern "C" {
 /* USER CODE BEGIN Includes */
 //#include "usbd_cdc_if.h"
 #include "crc8.h"
+#include "calibration.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -53,7 +54,7 @@ extern I2C_HandleTypeDef hi2c1;
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
-
+#define OUTPUT_PWM_FREQ   ((uint32_t)(5000))
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/
@@ -71,6 +72,8 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define LED_BLUE_Pin LL_GPIO_PIN_13
 #define LED_BLUE_GPIO_Port GPIOC
+#define USER_BUTTON_Pin LL_GPIO_PIN_0
+#define USER_BUTTON_GPIO_Port GPIOA
 
 /* USER CODE BEGIN Private defines */
 
